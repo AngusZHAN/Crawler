@@ -1,5 +1,6 @@
 import os
 import requests
+from openpyxl import Workbook
 from pyquery import PyQuery as pq
 
 class Model(object):
@@ -109,17 +110,39 @@ def download_image(url):
         f.write(r.content)
 
 
+def write_excel(tag, books):
+    '''
+    将爬去的书籍信息写入excel文件
+    '''
+    wb = Workbook(optimized_write=True)
+    ws = []
+    ws.append(wb.create_sheet(title=tag.decode())) #utf8->unicode
+    
+    for i in range(len(tags)):
+        ws[i].append(['排名', '书名', '评分', '出版信息'])
+        count = 1
+        for b in books:
+            ws[i].append([count, b[0], float(b[1]), b[2]])
+            count += 1
+    
+    save_path = 'book_list'
+    save_path += ('-' + tag.decode())
+    save_path += '.xlsx'
+    wb.save(save_path)
+
+
 def main():
     '''
     爬取每个标签下评价前100本书
     '''
     tags = ['哲学', '历史', '金融', '心理学', '传记']
-    for t in tags:
+    for tag in tags:
         for i in range(0, 100, 20):
             url = 'https://book.douban.com/tag/{}?start={}&type=S'.format(t, i)
-            books = book_from_url(url, t)
-            print(t)
+            books = book_from_url(url, tag)
+            print(tag)
             print('书单', books)
+            write_excel(tag, books)
             [download_image(b.cover_url) for b in books]
 
 

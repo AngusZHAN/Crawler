@@ -112,10 +112,31 @@ def download_image(url):
         f.write(r.content)
 
 
+def write_excel(movies):
+    '''
+    将爬去的书籍信息写入excel文件
+    '''
+    wb = Workbook(optimized_write=True)
+    ws = []
+    ws.append(wb.create_sheet(title=movie100))#utf8->unicode
+    
+    for i in range(len(movies)):
+        ws[i].append(['排名', '电影名', '评分', '引言'])
+        count = 1
+        for m in movies:
+            ws[i].append([count, m[0], float(m[1]), m[2]])
+            count += 1
+    
+    save_path = 'movie100'
+    save_path += '.xlsx'
+    wb.save(save_path)
+
+
 def main():
     for i in range(0, 250, 25):
         url = 'https://movie.douban.com/top250?start={}'.format(i)
         movies = movies_from_url(url)
+        write_excel(movies)
         print('Top250 movies', movies)
         [download_image(m.cover_url) for m in movies]
 
