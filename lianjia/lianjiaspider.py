@@ -14,16 +14,15 @@ class Model(object):
         return s
 
 
-class Movie(Model):
+class House(Model):
     """
-    存储电影信息
+    存储房屋信息
     """
     def __init__(self):
-        self.name = ''
-        self.score = 0
-        self.quote = ''
+        self.title = ''
+        self.detail = ''
+        self.rent = ''
         self.cover_url = ''
-        self.ranking = 0
 
 
 def cached_url(url):
@@ -31,8 +30,8 @@ def cached_url(url):
     网页缓存, 避免重复下载网页
     """
     folder = 'cached'
-    filename = url.split('=', 1)[-1] + '.html'
-    'cached/0.html'
+    filename = url.split("zufang/", 1)[-1] + '.html'
+    'cached/pg1.html'
     path = os.path.join(folder, filename)
     if os.path.exists(path):
         with open(path, 'rb') as f:
@@ -45,7 +44,7 @@ def cached_url(url):
 
         headers = {
             'user-agent': '''Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36
-             Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8''',
+            Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8''',
         }
         # 发送网络请求, 把结果写入到文件夹中
         r = requests.get(url, headers)
@@ -54,24 +53,22 @@ def cached_url(url):
         return r.content
 
 
-def movie_from_div(div):
+def house_from_div(div):
     """
-    从一个 div 里面获取到一个电影信息
+    从一个 div 里面获取到一个房屋信息
     """
     e = pq(div)
 
-    # 小作用域变量用单字符
-    m = Movie()
-    m.name = e('.title').text()
-    m.score = e('.rating_num').text()
-    m.quote = e('.inq').text()
-    m.cover_url = e('img').attr('src')
-    m.ranking = e('.pic').find('em').text()
+    h = House()
+    h.title = e('.content__list--item--title twoline').text()
+    h.detail = e('.content__list--item--des').text()
+    h.rent = e('.content__list--item-price').text()
+    h.cover_url = e('content__list--item--aside').attr('src')
 
-    return m
+    return h
 
 
-def movies_from_url(url):
+def houses_from_url(url):
     '''
     从 url 中下载网页并解析出页面内所有的电影
     只会下载一次
@@ -85,11 +82,11 @@ def movies_from_url(url):
     e = pq(page)
     # print(page.decode())
     # 2.父节点
-    items = e('.item')
+    items = e('.content__list--item')
     # 调用 movie_from_div
     # list comprehension
-    movies = [movie_from_div(i) for i in items]
-    return movies
+    houses = [house_from_div(i) for i in items]
+    return houses
 
 
 def download_image(url):
@@ -113,33 +110,33 @@ def download_image(url):
         f.write(r.content)
 
 
-def write_excel(movies):
+def write_excel(houses):
     '''
-    将爬去的电影信息写入excel文件
+    将爬取到的信息写入excel
     '''
     wb = Workbook(optimized_write=True)
     ws = []
-    ws.append(wb.create_sheet(title=movie100))#utf8->unicode
+    ws.append(wb.create_sheet(title=house))#utf8->unicode
     
-    for i in range(len(movies)):
-        ws[i].append(['排名', '电影名', '评分', '引言'])
+    for i in range(len(houses)):
+        ws[i].append(['房屋标题', '房屋详情', '每月租金', '图片详情'])
         count = 1
-        for m in movies:
+        for h in houses:
             ws[i].append([count, m[0], float(m[1]), m[2]])
             count += 1
     
-    save_path = 'movie100'
+    save_path = 'house'
     save_path += '.xlsx'
     wb.save(save_path)
 
 
 def main():
-    for i in range(0, 250, 25):
-        url = 'https://movie.douban.com/top250?start={}'.format(i)
-        movies = movies_from_url(url)
-        write_excel(movies)
-        print('Top250 movies', movies)
-        [download_image(m.cover_url) for m in movies]
+    for i in range(3):
+        url = 'https://sh.lianjia.com/zufang/pg{}'.format(i)
+        houses = houses_from_url(url)
+        write_excel(houses)
+        print('链家租房信息', houses)
+        [download_image(h.cover_url) for h in houses]
 
 
 if __name__ == '__main__':
